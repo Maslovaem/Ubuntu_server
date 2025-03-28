@@ -10,7 +10,11 @@ if ($conn->connect_error) {
 }
 
 // SQL-запрос для получения строки с последним id
-$sql = "SELECT param1 FROM my_table ORDER BY id DESC LIMIT 1";
+
+/**
+* теперь cell(номер ячейки) тоже передается
+*/
+$sql = "SELECT param1, cell FROM my_table ORDER BY id DESC LIMIT 1";
 $result = $conn->query($sql);
 
 if (!$result) {
@@ -22,15 +26,12 @@ if (!$result) {
 // Получаем данные
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
-    $param1 = $row['param1']; // Извлекаем значение param1
-
-    // Формируем JSON-ответ
-    $data = ["param1" => $param1]; // Указываем данные для JSON
-    echo json_encode($data); // Возвращаем JSON
+	
+	// Формируем JSON-ответ
+    echo json_encode($row);
 } else {
-    echo json_encode(["error" => "No data found"]); // Если данных нет
+    echo json_encode(["error" => "No data found"]);
 }
 
-// Закрываем соединение
 $conn->close();
 ?>
