@@ -23,15 +23,28 @@ if (!$result) {
     exit;
 }
 
-// Получаем данные
+// // Получаем данные
+// if ($result->num_rows > 0) {
+    // $row = $result->fetch_assoc();
+	
+	// // Формируем JSON-ответ
+    // echo json_encode($row);
+// } else {
+    // echo json_encode(["error" => "No data found"]);
+// }
+
+// Создаём JSON-ответ
+$response = [];
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
-	
-	// Формируем JSON-ответ
-    echo json_encode($row);
+    $response["param1"] = isset($row["param1"]) ? $row["param1"] : null;
+    $response["cell"] = isset($row["cell"]) ? intval($row["cell"]) : null; // Приводим cell к числу
 } else {
-    echo json_encode(["error" => "No data found"]);
+    $response["error"] = "No data found";
 }
+
+// Выводим JSON-ответ
+echo json_encode($response);
 
 $conn->close();
 ?>
