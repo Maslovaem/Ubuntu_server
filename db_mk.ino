@@ -8,6 +8,10 @@ const char* serverUrl = "http://192.168.1.40/api.php";
 
 const int ledPins[] = {41, 42, 43}; // Пины для 3 светодиодов (номера лучше уточнить)
 
+// Пины для HC-SR04
+const int trigPin = 12;  // Триггерный пин
+const int echoPin = 14;  // Эхо-пин
+
 void setup() {
   Serial.begin(115200);
   
@@ -66,5 +70,23 @@ void loop() {
   } else {
     Serial.println("WiFi disconnected");
   }
+  
+  // Измерение расстояния с HC-SR04
+  long duration;
+  float distance;
+
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration * 0.0343) / 2; // Преобразование времени в расстояние
+
+  Serial.print("Расстояние: ");
+  Serial.print(distance);
+  Serial.println(" см");
+  
   delay(5000);
 }
