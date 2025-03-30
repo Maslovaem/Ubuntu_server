@@ -1,15 +1,13 @@
 <?php
 header("Content-Type: application/json");
 
-echo "api.php on localhost";
-
 $conn = new mysqli("localhost", "ESP32", "1", "my_database");
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "SELECT date, cell FROM project_table";
+$sql = "SELECT date, cell FROM project_base";
 $result = $conn->query($sql);
 
 if (!$result) {
