@@ -7,7 +7,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "SELECT date, cell FROM project_base";
+$sql = "SELECT date, cell FROM project_base WHERE date < CURDATE()";
 $result = $conn->query($sql);
 
 if (!$result) {
@@ -16,23 +16,12 @@ if (!$result) {
     exit;
 }
 
-// // Получаем данные
-// if ($result->num_rows > 0) {
-    // $row = $result->fetch_assoc();
-	
-	// // Формируем JSON-ответ
-    // echo json_encode($row);
-// } else {
-    // echo json_encode(["error" => "No data found"]);
-// }
-
 $response = [];
-if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $response["date"] = isset($row["date"]) ? $row["date"] : null;
-    $response["cell"] = isset($row["cell"]) ? intval($row["cell"]) : null;
-} else {
-    $response["error"] = "No data found";
+while ($row = $result->fetch_assoc()) {
+    $response[] = [
+        "date" => $row["date"],
+        "cell" => intval($row["cell"])
+    ];
 }
 
 echo json_encode($response);
