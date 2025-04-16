@@ -1,28 +1,22 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
-#include <NTPClient.h>
-#include <WiFiUdp.h>
 #include <vector>
 
 const int LED_NUMBER = 3;
-
 const char *ssid = "S23 FE"; 
 const char *password = "j7squ2iqnuity4k"; 
-const char *serverUrl = "http://192.168.95.103/Ubuntu_server/api.php"; 
+const char *serverUrl = "http://192.168.92.18/Ubuntu_server/api.php";
 
-const int ledPins[] = {25, 26, 27}; // Пины для 3 светодиодов
+const int ledPins[] = {14, 23, 33};
 std::vector<int> cells;
 
-//Пины для HC-SR04
-
-/*const int trigPin = 12;  //Триггерный пин
-
-const int echoPin = 14;  //Эхо-пин*/
+const int trigPins[] = {13, 32, 19};
+const int echoPins[] = {12, 35, 21};
+float lastDistances[3] = {0, 0, 0};
 
 void blink() {
-  for (int i = 0; i < 5; i++) {
-    
+  for (int i = 0; i < 5; i++) {    
     for (auto it = cells.begin(); it != cells.end(); it++) {
       int cell = *it;
       if (cell >= 1 && cell <= 3) {
@@ -42,24 +36,59 @@ void blink() {
   cells.clear();
 }
 
+float measureDistance(int sensorNum) {
+
+  digitalWrite(trigPins[sensorNum], LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPins[sensorNum], HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPins[sensorNum], LOW);
+  
+  float duration = pulseIn(echoPins[sensorNum], HIGH);
+  return (duration * 0.0343) / 2;
+}
+
 void setup() {
   Serial.begin(115200);
+  
+  for (int i = 0; i < 3; i++) {
+    pinMode(trigPins[i], OUTPUT);
+    pinMode(echoPins[i], INPUT);
+  }
 
   for (int i = 0; i < LED_NUMBER; i++) {
     pinMode(ledPins[i], OUTPUT);
   }
 
   WiFi.begin(ssid, password);
-
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.println("Connecting to WiFi...");
   }
-
   Serial.println("Connected to WiFi");
 }
 
 void loop() {
+  
+  for (int i = 0; i < 3; i++) {
+    float distance = measureDistance(i);
+    if (abs(distance - lastDistances[i]) > 1.0) {
+      lastDistances[i] = distance;
+      Serial.print("Датчик ");
+      Serial.print(i+1);
+      Serial.print(": ");
+      Serial.print(distance);
+      Serial.println(" см");
+    }
+
+      HTTPClient http;
+      http.begin("http://192.168.126.18/Ubuntu_server/get_sensors.php");
+      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+      http.POST("sensor_id=" + String(i+1) + "&value=" + String(distance));
+      http.end();
+      delay(50);
+  }
+
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin(serverUrl);
@@ -100,32 +129,6 @@ void loop() {
   } else {
     Serial.println("WiFi disconnected");
   }
-
-  // Измерение расстояния с HC-SR04
-
-  /*long duration;
-
-  float distance;
-
-  digitalWrite(trigPin, LOW);
-
-  delayMicroseconds(2);
-
-  digitalWrite(trigPin, HIGH);
-
-  delayMicroseconds(10);
-
-  digitalWrite(trigPin, LOW);
-
-  duration = pulseIn(echoPin, HIGH);
-
-  distance = (duration * 0.0343) / 2; // Преобразование времени в расстояние
-
-  Serial.print("Расстояние: ");
-
-  Serial.print(distance);
-
-  Serial.println(" см");*/
 
   delay(500);
 }
