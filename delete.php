@@ -10,20 +10,19 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Получаем данные из формы
-$login = $_POST['login'];
-$medicine = $_POST['medicine'];
+$medicine = (int)$_POST['medicine'];
 $date = $_POST['date'];
-$cell = $_POST['cell'];
 
-$sql = "INSERT INTO project_base (login, medicine, date, cell) VALUES ('$login', '$medicine', '$date', '$cell')";
+$sql = " DELETE FROM project_base WHERE cell = '$cell' AND medicine = '$medicine'";
 
 if ($conn->query($sql) === TRUE) {
-    echo "New record created successfully";
+    echo "Удаление произошло успешно";
 } else {
-    echo "Error: " . $sql . "<br>" . $conn->error;
+    echo "Ошибка удаления: " . $sql . "<br>" . $conn->error;
 }
 
 $conn->close();
+
 header("refresh:3;url=index.html");
 ?>
+

@@ -2,18 +2,46 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <vector>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include "TM1637.h"
+
+#define CLK 26//pins definitions for TM1637 and can be changed to other ports       
+#define DIO 27
+TM1637 tm1637(CLK,DIO);
+// Пин для подключения DS18B20
+#define ONE_WIRE_BUS 25
+
+// Настройка объектов для работы с датчиком
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
+
+DeviceAddress sensor = {0x28, 0xE6, 0xD4, 0x80, 0xE3, 0xE1, 0x3C, 0x92};
 
 const int LED_NUMBER = 3;
-const char *ssid = "S23 FE"; 
-const char *password = "j7squ2iqnuity4k"; 
-const char *serverUrl = "http://192.168.92.18/Ubuntu_server/api.php";
+const char *ssid = "POCOX3Pro"; 
+const char *password = "O98765421"; 
+const char *serverUrl = "http://192.168.161.200/Ubuntu_server/api.php";
 
 const int ledPins[] = {14, 23, 33};
 std::vector<int> cells;
 
-const int trigPins[] = {13, 32, 19};
-const int echoPins[] = {12, 35, 21};
+const int trigPins[] = {13, 22, 19};
+const int echoPins[] = {12, 18, 21};
 float lastDistances[3] = {0, 0, 0};
+
+void readTemperatureTask(void *pvParameters) {
+  while (1) {
+    sensors.requestTemperatures();
+    float tempC = sensors.getTempCByIndex(0);
+
+    Serial.print(">>>>>>Температура: ");
+    Serial.print(tempC);
+    Serial.println(" °C");
+
+    vTaskDelay(15000 / portTICK_PERIOD_MS);  // Задержка 1 секунда (FreeRTOS-совместимая)
+  }
+}
 
 void blink() {
   for (int i = 0; i < 5; i++) {    
@@ -50,6 +78,19 @@ float measureDistance(int sensorNum) {
 
 void setup() {
   Serial.begin(115200);
+  tm1637.init();
+  tm1637.set(BRIGHT_TYPICAL);
+  sensors.begin();
+
+  xTaskCreatePinnedToCore(
+    readTemperatureTask,  // Функция задачи
+    "TemperatureTask",    // Название задачи (для отладки)
+    10000,                // Размер стека (можно увеличить, если нужно)
+    NULL,                 // Параметры задачи (не используем)
+    1,                    // Приоритет (1 - стандартный)
+    NULL,                 // Дескриптор задачи (не сохраняем)
+    0               // Ядро (0 - Core 0)
+  );
   
   for (int i = 0; i < 3; i++) {
     pinMode(trigPins[i], OUTPUT);
@@ -72,21 +113,25 @@ void loop() {
   
   for (int i = 0; i < 3; i++) {
     float distance = measureDistance(i);
-    if (abs(distance - lastDistances[i]) > 1.0) {
+    //if ((distance - lastDistances[i]) > 1.0) {
       lastDistances[i] = distance;
       Serial.print("Датчик ");
       Serial.print(i+1);
       Serial.print(": ");
       Serial.print(distance);
       Serial.println(" см");
-    }
+    //}
+
 
       HTTPClient http;
-      http.begin("http://192.168.126.18/Ubuntu_server/get_sensors.php");
+      http.begin("http://192.168.161.200/Ubuntu_server/get_sensors.php");
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-      http.POST("sensor_id=" + String(i+1) + "&value=" + String(distance));
+      int httpResCode = http.POST("sensor_id=" + String(i+1) + "&value=" + String(distance));
+      Serial.println("sensor_id=" + String(i+1) + "&value=" + String(distance));
+      ///Serial.print("HTTP RESPONSE: ");
+      ///Serial.println(httpResCode);
       http.end();
-      delay(50);
+      delay(5000);
   }
 
   if (WiFi.status() == WL_CONNECTED) {
