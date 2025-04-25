@@ -4,6 +4,8 @@
 #include <vector>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Arduino.h>
+#include <TM1637Display.h>
 #include "TM1637.h"
 
 #define CLK 26//pins definitions for TM1637 and can be changed to other ports       
@@ -11,6 +13,12 @@
 TM1637 tm1637(CLK,DIO);
 // Пин для подключения DS18B20
 #define ONE_WIRE_BUS 25
+
+// Определение символов для TM1637 (7-сегментные коды)
+const uint8_t SEG_T[] = {
+  0b01110100 // T
+  // Другие символы можно добавить по аналогии
+};
 
 // Настройка объектов для работы с датчиком
 OneWire oneWire(ONE_WIRE_BUS);
@@ -39,30 +47,78 @@ void readTemperatureTask(void *pvParameters) {
     Serial.print(tempC);
     Serial.println(" °C");
 
-    vTaskDelay(15000 / portTICK_PERIOD_MS);  // Задержка 1 секунда (FreeRTOS-совместимая)
+    int tempInt = (int) tempC;
+
+
+    // delay(1000);
+    // tm1637.display(0, 0x00);   
+    // tm1637.display(1, 0x00);
+    // tm1637.display(2, 0x00);
+    // tm1637.display(3, 0x00);
+    tm1637.display(0, SEG_T[0]);   
+    if (tempInt >= 100) 
+    {
+      tm1637.display(1, (tempInt / 100));
+    }
+    else
+    {
+      tm1637.display(1, 0b01100011);
+    }
+    tm1637.display(2, (tempInt % 100) / 10);
+    tm1637.display(3, (tempInt % 100) % 10);
+    //delay(1000);
+    // // tm1637.display(0, 0x00);   
+    // // tm1637.display(1, 0x00);
+    // // tm1637.display(2, 0x00);
+    // // tm1637.display(3, 0x00);
+
+    for (int i = 0; i < 5; i++) {    
+      for (auto it = cells.begin(); it != cells.end(); it++) {
+        int cell = *it;
+        if (cell >= 1 && cell <= 3) {
+          digitalWrite(ledPins[cell - 1], HIGH);
+        }
+      }
+      delay(500);
+      
+      for (auto it = cells.begin(); it != cells.end(); it++) {
+        int cell = *it;
+        if (cell >= 1 && cell <= 3) {
+          digitalWrite(ledPins[cell - 1], LOW);
+        }
+      }
+      delay(500);
+    }
+    cells.clear();
+
+    vTaskDelay(1250 / portTICK_PERIOD_MS);  // Задержка 1 секунда (FreeRTOS-совместимая)
   }
 }
 
-void blink() {
-  for (int i = 0; i < 5; i++) {    
-    for (auto it = cells.begin(); it != cells.end(); it++) {
-      int cell = *it;
-      if (cell >= 1 && cell <= 3) {
-        digitalWrite(ledPins[cell - 1], HIGH);
-      }
-    }
-    delay(500);
-    
-    for (auto it = cells.begin(); it != cells.end(); it++) {
-      int cell = *it;
-      if (cell >= 1 && cell <= 3) {
-        digitalWrite(ledPins[cell - 1], LOW);
-      }
-    }
-    delay(500);
-  }
-  cells.clear();
-}
+// void blink(void *pvParameters) {
+//   while(1) {
+//     for (int i = 0; i < 5; i++) {    
+//       for (auto it = cells.begin(); it != cells.end(); it++) {
+//         int cell = *it;
+//         if (cell >= 1 && cell <= 3) {
+//           digitalWrite(ledPins[cell - 1], HIGH);
+//         }
+//       }
+//       delay(500);
+      
+//       for (auto it = cells.begin(); it != cells.end(); it++) {
+//         int cell = *it;
+//         if (cell >= 1 && cell <= 3) {
+//           digitalWrite(ledPins[cell - 1], LOW);
+//         }
+//       }
+//       delay(500);
+//     }
+//     cells.clear();
+//   }
+
+//   vTaskDelay(5000 / portTICK_PERIOD_MS);
+// }
 
 float measureDistance(int sensorNum) {
 
@@ -91,6 +147,16 @@ void setup() {
     NULL,                 // Дескриптор задачи (не сохраняем)
     0               // Ядро (0 - Core 0)
   );
+
+  // xTaskCreatePinnedToCore(
+  //   blink,  // Функция задачи
+  //   "BlinkTask",    // Название задачи (для отладки)
+  //   10000,                // Размер стека (можно увеличить, если нужно)
+  //   NULL,                 // Параметры задачи (не используем)
+  //   1,                    // Приоритет (1 - стандартный)
+  //   NULL,                 // Дескриптор задачи (не сохраняем)
+  //   0               // Ядро (0 - Core 0)
+  // );
   
   for (int i = 0; i < 3; i++) {
     pinMode(trigPins[i], OUTPUT);
@@ -127,7 +193,7 @@ void loop() {
       http.begin("http://192.168.161.200/Ubuntu_server/get_sensors.php");
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       int httpResCode = http.POST("sensor_id=" + String(i+1) + "&value=" + String(distance));
-      Serial.println("sensor_id=" + String(i+1) + "&value=" + String(distance));
+      //Serial.println("sensor_id=" + String(i+1) + "&value=" + String(distance));
       ///Serial.print("HTTP RESPONSE: ");
       ///Serial.println(httpResCode);
       http.end();
@@ -164,7 +230,7 @@ void loop() {
           Serial.println(cell);
           cells.push_back(cell);
         }
-        blink();
+        //blink();
       }
     } else {
       Serial.print("HTTP request failed, error code: ");
