@@ -11,12 +11,13 @@ if ($conn->connect_error) {
 }
 
 $medicine = (int)$_POST['medicine'];
-$date = $_POST['date'];
+$cell = (int)$_POST['cell'];
 
 $sql = " DELETE FROM project_base WHERE cell = '$cell' AND medicine = '$medicine'";
 
 if ($conn->query($sql) === TRUE) {
     echo "Удаление произошло успешно";
+
 } else {
     echo "Ошибка удаления: " . $sql . "<br>" . $conn->error;
 }
@@ -25,4 +26,5 @@ $conn->close();
 
 header("refresh:3;url=index.html");
 ?>
+
 
