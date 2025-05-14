@@ -1,0 +1,93 @@
+2<?php
+header("Content-Type: application/json");
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    die(json_encode(["error" => "Only POST method allowed"]));
+}
+
+if (!isset($_POST['sensor_id']) || !isset($_POST['value'])) {
+    http_response_code(400);
+    die(json_encode(["error" => "Missing sensor_id or value"]));
+}
+
+$conn = new mysqli("localhost", "ESP32", "1", "my_database");
+
+if ($conn->connect_error) {
+    http_response_code(500);
+    die(json_encode(["error" => "DB connection failed"]));
+}
+
+$sensor_id = intval($_POST['sensor_id']);
+$current_value = floatval($_POST['value']);
+
+$stmt = $conn->prepare("SELECT value FROM sensor_data WHERE sensor_id = ? ORDER BY timestamp DESC LIMIT 5");
+$stmt->bind_param("i", $sensor_id);
+
+if (!$stmt->execute()) {
+    http_response_code(500);
+    die(json_encode(["error" => "Query failed"]));
+}
+
+$result = $stmt->get_result();
+$all_differ = true;
+$values_count = 0;
+
+while ($row = $result->fetch_assoc()) {
+    $last_value = floatval($row['value']);
+    $values_count++;
+    if (abs($current_value - $last_value) <= 1) {
+        $all_differ = false;
+    }
+}
+
+if ($all_differ && $values_count === 5) {
+    $delete_stmt = $conn->prepare("DELETE FROM project_base WHERE cell = ? ORDER BY id DESC LIMIT 1");
+    $delete_stmt->bind_param("i", $sensor_id);
+    $delete_stmt->execute();
+    $delete_stmt->close();
+}
+
+$insert_stmt = $conn->prepare("INSERT INTO sensor_data (sensor_id, value) VALUES (?, ?)");
+$insert_stmt->bind_param("id", $sensor_id, $current_value);
+$insert_stmt->execute();
+$insert_stmt->close();
+
+echo json_encode(["status" => "success"]);
+$stmt->close();
+$conn->close();
+?><?php
+header("Content-Type: application/json");
+
+$conn = new mysqli("localhost", "ESP32", "1", "my_database");
+
+$sensor_id = $_POST['sensor_id'];
+$current_value = (float)$_POST['value'];
+
+$result = $conn->query("SELECT value FROM sensor_data WHERE sensor_id = $sensor_id ORDER BY timestamp DESC LIMIT 5");
+
+$all_differ = true;
+$values_count = 0;
+
+while ($row = $result->fetch_assoc()) {
+    $last_value = (float)$row['value'];
+    $values_count++;
+
+    if (abs($current_value - $last_value) <= 1) {
+        $all_differ = false;
+        break;
+    }
+}
+
+if ($all_differ && $values_count === 5) {
+    $conn->query(" DELETE FROM project_base WHERE id = ( SELECT MAX(id) FROM ( SELECT id FROM project_base WHERE cell = $sensor_id ) AS tmp ) ");
+    echo json_encode(["status" => "deleted"]);
+}
+
+$conn->query("INSERT INTO sensor_data (sensor_id, value) VALUES ($sensor_id, $current_value)");
+echo json_encode(["status" => "updated"]);
+
+$conn->close();
+?>
+
+

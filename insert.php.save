@@ -57,6 +57,31 @@ if ($password === $correct_password) {
     }
 }
 
+("SELECT value FROM sensor_data WHERE sensor_id = $sensor_id ORDER BY timestamp DESC LIMIT 1 OFFSET 5");
+
+$result = $conn->query("SELECT value FROM sensor_data WHERE sensor_id = $sensor_id ORDER BY timestamp DESC LIMIT 5");
+
+$all_differ = true;
+$values_count = 0;
+
+while ($row = $result->fetch_assoc()) {
+    $last_value = (float)$row['value'];
+    $values_count++;
+
+    if (($current_value - $last_value) <= 1) {
+        $all_differ = false;
+        break;
+    }
+}
+
+if ($all_differ && $values_count === 5) {
+    //echo "Изменение содержимого! Проверьте содержимое ячеек";
+    header("Location: index.html?changes=true");
+    exit();
+}
+
+
+
 $conn->close();
 exit();
 ?>

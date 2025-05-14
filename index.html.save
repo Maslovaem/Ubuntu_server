@@ -85,10 +85,6 @@
     <button class="delete-btn" onclick="location.href='delete_form.html'">
         Удалить лекарство
     </button>
-
-    <button class="check-button" onclick="location.href='checker.html'">
-        Проверить статус
-    </button>
   </form>
 
   <div id="popup" class="popup" style="display: none;"></div>
@@ -98,10 +94,9 @@
       const urlParams = new URLSearchParams(window.location.search);
       const success = urlParams.get('success');
       const error = urlParams.get('error');
-      const attemptsLeft = 3 - (parseInt(urlParams.get('attempts')) || 0);
-      const changes = urlParams.get('changes');
+      
       const popup = document.getElementById('popup');
-
+      
       if (success === '1') {
         popup.textContent = 'Данные успешно сохранены!';
         popup.className = 'popup success';
@@ -115,46 +110,20 @@
           popup.style.display = 'none';
         }, 3000);
       }
-      
       else if (error === '1') {
-        popup.textContent = 'Ошибка ввода данных!';
-        popup.className = 'popup error';
-        popup.style.display = 'block';
-
-        history.replaceState(null, null, window.location.pathname);
-        setTimeout(() => {
-          popup.style.display = 'none';
-        }, 3000);
-      }
-
-
-      else if (error === 'wrong_password') {
-        popup.textContent = `Неверный пароль! Осталось попыток: ${attemptsLeft}`;
+        popup.textContent = 'Ошибка при сохранении данных!';
         popup.className = 'popup error';
         popup.style.display = 'block';
         
         history.replaceState(null, null, window.location.pathname);
         setTimeout(() => {
           popup.style.display = 'none';
-        }, 3000);
-      }
-
-      else if (changes === 'true'){
-        popup.textContent = 'Изменение содержимого! Рекомендуем проверить содержимое ячеек.';
+        }
+      else if (error === 'password') {
+        popup.textContent = 'Неверный пароль!';
         popup.className = 'popup error';
         popup.style.display = 'block';
-
-        history.replaceState(null, null, window.location.pathname);
-        setTimeout(() => {
-          popup.style.display = 'none';
-        }, 3000);
-      }
-      
-      else if (changes === 'false'){
-        popup.textContent = 'Изменений содержимого не обнаружено.';
-        popup.className = 'popup error';
-        popup.style.display = 'block';
-
+        
         history.replaceState(null, null, window.location.pathname);
         setTimeout(() => {
           popup.style.display = 'none';
